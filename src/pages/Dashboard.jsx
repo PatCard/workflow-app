@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [previews, setPreviews] = useState([])
   const [loading, setLoading] = useState(false)
   const [vista, setVista] = useState('hoy')
+  const [busqueda, setBusqueda] = useState('')
   const [user, setUser] = useState(null)
   const fileRef = useRef()
 
@@ -84,7 +85,11 @@ export default function Dashboard() {
     return grupos
   }
 
-  const grupos = agruparPorDia(actividades)
+  const actividadesFiltradas = actividades.filter(a =>
+    a.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
+    (a.descripcion && a.descripcion.toLowerCase().includes(busqueda.toLowerCase()))
+  )
+  const grupos = agruparPorDia(actividadesFiltradas)
 
   return (
     <div style={{minHeight:'100vh',background:'#EEF2FF',padding:'16px'}}>
@@ -149,6 +154,17 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        <div style={{background:'#fff',border:'0.5px solid #E5E7EB',borderRadius:'12px',padding:'10px 14px',marginBottom:'16px',display:'flex',alignItems:'center',gap:'8px'}}>
+          <i className="ti ti-search" style={{fontSize:'16px',color:'#9CA3AF'}}></i>
+          <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar actividades..."
+            style={{border:'none',outline:'none',fontSize:'13px',color:'#111827',background:'transparent',flex:1}} />
+          {busqueda && (
+            <button onClick={() => setBusqueda('')} style={{background:'transparent',border:'none',cursor:'pointer',color:'#9CA3AF'}}>
+              <i className="ti ti-x" style={{fontSize:'14px'}}></i>
+            </button>
+          )}
+        </div>        
 
         {Object.keys(grupos).length === 0 && (
           <div style={{textAlign:'center',padding:'40px',color:'#9CA3AF',fontSize:'13px'}}>
