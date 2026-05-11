@@ -4,6 +4,8 @@
 
 ![WorkFlow](https://img.shields.io/badge/version-1.0.0-blue) ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react) ![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite) ![Supabase](https://img.shields.io/badge/Supabase-backend-3ECF8E?logo=supabase) ![Vercel](https://img.shields.io/badge/Vercel-deploy-000?logo=vercel)
 
+**Producción:** https://workflow-app-omega.vercel.app
+
 ---
 
 ## Descripción
@@ -31,11 +33,12 @@ WorkFlow es una aplicación web que permite registrar y consultar las actividade
 |---|---|---|
 | Frontend | React 18 + Vite | Interfaz de usuario |
 | Autenticación | Supabase Auth | Login con email y contraseña |
-| Base de datos | Supabase PostgreSQL | Almacenamiento de actividades |
+| Base de datos | Supabase PostgreSQL 17.6 | Almacenamiento de actividades |
 | Almacenamiento | Supabase Storage | Imágenes adjuntas |
 | Deploy | Vercel | Hosting gratuito con CI/CD automático |
 | Íconos | Tabler Icons | Librería de íconos vía CDN |
 | Contenedor dev | Docker + Docker Compose | Entorno de desarrollo sin instalar Node localmente |
+| Cliente DB | DBeaver | Administración visual de la base de datos |
 
 ---
 
@@ -45,6 +48,7 @@ WorkFlow es una aplicación web que permite registrar y consultar las actividade
 - Cuenta en [Supabase](https://supabase.com) (gratis)
 - Cuenta en [Vercel](https://vercel.com) (gratis)
 - Cuenta en [GitHub](https://github.com) (gratis)
+- [DBeaver](https://dbeaver.io) (opcional, para administrar la DB visualmente)
 
 > No es necesario tener Node.js instalado localmente. El entorno de desarrollo corre completamente dentro de Docker.
 
@@ -56,7 +60,7 @@ WorkFlow es una aplicación web que permite registrar y consultar las actividade
 
 1. Ve a [supabase.com](https://supabase.com) y crea un nuevo proyecto
 2. Selecciona la región **South America (São Paulo)**
-3. Guarda la contraseña de la base de datos
+3. **Guarda la contraseña de la base de datos** — la necesitarás para conectar DBeaver
 
 ### 2. Crear la tabla de actividades
 
@@ -95,9 +99,9 @@ Marca las 4 operaciones: SELECT, INSERT, UPDATE, DELETE.
 
 ### 4. Crear tu usuario
 
-Ve a **Authentication → Users → Add user** e ingresa tu email y contraseña.
+Ve a **Authentication → Users → Add user → Create new user** e ingresa tu email y contraseña.
 
-### 5. Obtener credenciales
+### 5. Obtener credenciales de la API
 
 Ve a **Settings → API** y copia:
 - **Project URL** → `VITE_SUPABASE_URL`
@@ -180,14 +184,15 @@ El deploy es automático cada vez que haces `git push` a la rama `main`.
 
 1. Ve a [vercel.com](https://vercel.com) y conecta tu cuenta de GitHub
 2. Haz clic en **Add New Project** y selecciona `workflow-app`
-3. En **Environment Variables** agrega:
+3. Cambia el **Project Name** antes de hacer deploy para obtener una URL limpia
+4. En **Environment Variables** agrega:
 
 ```
 VITE_SUPABASE_URL       = https://tu-proyecto.supabase.co
 VITE_SUPABASE_ANON_KEY  = sb_publishable_xxxxxxxxxxxx
 ```
 
-4. Haz clic en **Deploy**
+5. Haz clic en **Deploy**
 
 ### Actualizaciones
 
@@ -198,6 +203,63 @@ git push
 ```
 
 Vercel detecta el push y redespliega automáticamente en 1-2 minutos.
+
+---
+
+## Conexión a la base de datos con DBeaver
+
+Supabase usa PostgreSQL 17.6. Para conectarte con DBeaver debes usar el **Session Pooler** (compatible con redes IPv4 sin costo adicional).
+
+### Dónde obtener los datos
+
+Ve a tu proyecto en Supabase → botón **Connect** (arriba en la barra de navegación) → pestaña **Session Pooler**.
+
+### Datos de conexión
+
+| Campo | Valor |
+|---|---|
+| **Host** | `aws-1-us-west-2.pooler.supabase.com` |
+| **Port** | `5432` |
+| **Database** | `postgres` |
+| **Username** | `postgres.ID_DE_TU_PROYECTO` |
+| **Password** | contraseña de la base de datos |
+
+> El username incluye el ID del proyecto. Cópialo exactamente como aparece en la pantalla de Connect de Supabase.
+
+### Pasos en DBeaver
+
+1. **Nueva conexión → PostgreSQL**
+2. Llena los campos con los datos de arriba
+3. Clic en **Test Connection** (acepta el driver si lo pide)
+4. **Finish**
+
+### Consultas útiles
+
+```sql
+-- Ver todas las actividades ordenadas por fecha
+SELECT titulo, descripcion, fecha_hora
+FROM actividades
+ORDER BY fecha_hora DESC;
+
+-- Contar actividades por día
+SELECT DATE(fecha_hora) as dia, COUNT(*) as total
+FROM actividades
+GROUP BY dia
+ORDER BY dia DESC;
+
+-- Buscar actividades por palabra clave
+SELECT titulo, descripcion, fecha_hora
+FROM actividades
+WHERE titulo ILIKE '%palabra%'
+   OR descripcion ILIKE '%palabra%';
+```
+
+### Notas importantes
+
+- ⚠️ **No uses la conexión directa** (host `db.xxx.supabase.co`, puerto 5432) — en el plan gratuito está bloqueada para redes IPv4
+- ⚠️ **No uses Transaction Pooler** (puerto 6543) — causa errores de autenticación
+- ✅ **Usa siempre Session Pooler** (host `aws-1-us-west-2.pooler.supabase.com`, puerto 5432)
+- Si olvidaste la contraseña: **Database → Settings → Reset database password**
 
 ---
 
